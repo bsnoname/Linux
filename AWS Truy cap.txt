@@ -1,0 +1,6 @@
+Jump:
+54.254.153.61
+
+SSh:
+nl-bi-report.alepay.local
+nl-db-bi.alepay.local

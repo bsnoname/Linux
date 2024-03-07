@@ -1,0 +1,32 @@
+myansible/
+├── ansible.cfg
+├── inventory/
+│   ├── group_vars/
+│   │   ├── all.yml
+│   │   └── webservers.yml
+│   ├── hosts
+│   └── host_vars/
+├── playbooks/
+│   ├── common.yml
+│   ├── webserver.yml
+│   └── dbserver.yml
+└── roles/
+    ├── common/
+    │   ├── tasks/
+    │   ├── handlers/
+    │   ├── templates/
+    │   ├── files/
+    │   ├── vars/
+    │   ├── defaults/
+    │   ├── meta/
+    │   └── group_vars/
+    └── webserver/
+        ├── tasks/
+        ├── handlers/
+        ├── templates/
+        ├── files/
+        ├── vars/
+        ├── defaults/
+        ├── meta/
+        └── group_vars/
+

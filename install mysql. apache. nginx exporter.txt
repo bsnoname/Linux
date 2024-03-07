@@ -1,0 +1,132 @@
+docker run -d -p 9117:9117 apache_exporter --scrape_uri="https://your.server.com/server-status?auto"
+
+docker run -d -p 9104:9104 --network my-mysql-network -e DATA_SOURCE_NAME="mysqld_exporter:123456aA@@(my-mysql-network:3306)/" \
+  prom/mysqld-exporter
+
+
+
+curl -s https://api.github.com/repos/Lusitaniae/apache_exporter/releases/latest|grep browser_download_url|grep linux-amd64|cut -d '"' -f 4|wget -qi -
+
+
+curl -s https://api.github.com/repos/prometheus/mysqld_exporter/releases/latest   | grep browser_download_url | grep linux-amd64 |  cut -d '"' -f 4 | wget -qi -
+tar xvf mysqld_exporter-*.linux-amd64.tar.gz
+cp mysqld_exporter /usr/local/bin/
+
+
+vi /etc/.mysqld_exporter.cnf
+[client]
+user=mysqld_exporter
+password=Next123Tech@
+
+mysql> CREATE USER 'mysqld_exporter'@'%' IDENTIFIED BY 'Next123Tech@';
+mysql> GRANT ALL PRIVILEGES ON *.* TO 'mysqld_exporter'@'%' WITH GRANT OPTION;
+mysql> FLUSH PRIVILEGES;
+
+vi /etc/systemd/system/mysql_exporter.service
+[Unit]
+Description=Prometheus exporter for MySQL server
+Documentation=https://prometheus.io/docs/introduction/overview/
+
+[Service]
+Type=simple
+Restart=always
+
+#EnvironmentFile=/etc/default/prometheus-mysqld-exporter
+ExecStart=/usr/local/bin/mysqld_exporter \
+ --config.my-cnf /etc/.mysqld_exporter.cnf \
+ --collect.global_status \
+ --collect.info_schema.innodb_metrics \
+ --collect.auto_increment.columns \
+ --collect.info_schema.processlist \
+ --collect.binlog_size \
+ --collect.info_schema.tablestats \
+ --collect.global_variables \
+ --collect.info_schema.query_response_time \
+ --collect.info_schema.userstats \
+ --collect.info_schema.tables \
+ --collect.perf_schema.tablelocks \
+ --collect.perf_schema.file_events \
+ --collect.perf_schema.eventswaits \
+ --collect.perf_schema.indexiowaits \
+ --collect.perf_schema.tableiowaits \
+ --collect.slave_status \
+ --web.listen-address=0.0.0.0:9104
+
+[Install]
+WantedBy=multi-user.target
+
+#systemctl daemon-reload
+#systemctl start mysql_exporter
+#systemctl enable mysql_exporter
+
+
+
+#wget https://github.com/percona/mongodb_exporter/releases/download/v2.37.0/mongodb_exporter-2.37.0.linux-amd64.tar.gz
+#tar xvzf mongodb_exporter-2.37.0.linux-amd64.tar.gz
+#cd mongodb_exporter-2.37.0.linux-amd64
+#cp mongodb_exporter /usr/local/bin/
+
+use admin
+db.createUser(
+  {
+    user: "mongodb_exporter",
+    pwd: "Next123Tech",
+    roles: [
+        { role: "clusterMonitor", db: "admin" },
+        { role: "read", db: "local" }
+    ]
+  }
+)
+
+#vi /lib/systemd/system/mongodb_exporter.service
+[Unit]
+Description=MongoDB Exporter
+
+[Service]
+Type=simple
+Restart=always
+ExecStart=/usr/local/bin/mongodb_exporter --mongodb.uri=mongodb://mongodb_exporter:Next123Tech@127.0.0.1:27017
+
+[Install]
+WantedBy=multi-user.target
+
+systemctl daemon-reload
+systemctl start mongodb_exporter
+systemctl enable mongodb_exporter
+
+
+
+#######################Các câu lệnh cơ bản mongodb################################
+Login vào Mongo bằng lệnh cơ bản nhất:
+#mongod
+
+Storage engine WiredTiger là một công nghệ lưu trữ dữ liệu được sử dụng trong hệ thống cơ sở dữ liệu MongoDB từ phiên bản 3.2 trở lên. WiredTiger được thiết kế để cải thiện hiệu suất, độ tin cậy và khả năng mở rộng của MongoDB so với các storage engine trước đó.
+Check storage enginer đang dùng của DB:
+#db.serverStatus().storageEngine
+
+Truy suất dữ liệu mongodb với tất cả dữ liệu bảng zones:
+#db.zones.find();
+Show tất cả dữ liệu có điều kiện status là active trong bảng zone:
+#db.zones.find({"status" : "active"})
+
+Nếu dùng and thì sử dụng như sau:
+#db.zones.find({
+... $and: [
+
+Nếu dùng or thì sử dụng như sau:
+#db.zones.find({
+... $or: [
+
+Có thể dùng so sánh như lớn hơn nhỏ hơn ... "Đọc chatgpt"
+Có thể dùng update, delete và insert theo nhiều kiểu như update one là 1 trường hoặc update manny nhiều trường.
+
+
+###############################Cách đánh index##################################
+Check index trong bảng zones:
+#db.zones.getIndexes()
+
+Check dung lượng của tables zone bằng lệnh sau
+#db.runCommand({collStats:"zones"});
+
+Để xem chiến lược thực thi 1 câu lệnh thì ta thêm .explain("executionStats"); vào sau câu lệnh cần select
+#db.zones.find({"status" : "active"}).explain("executionStats")

@@ -1,0 +1,103 @@
+##########################################################################
+Các server cần triển khai 												##
+2 Server PostgreSQL Active-Active: 										##
+10.0.8.70																##
+10.6.208.21						   										##
+Yêu cầu: Cần có thư mục chứa dữ liệu của zabbix : /data/postgres.   	##
+Databases nexttech chứa dữ liệu của 2 site zabbix trên hạ tầng DC và DR.##
+##########################################################################
+
+
+
+#############################################################################Thực Hiện Trên cả 2 server để cài đặt postgres###################################################################################
+Bước 1: Cài đặt các lib liên quan tới postgres, Sử dụng lệnh sau để triển khai
+sudo apt install wget gnupg2 lsb-release curl apt-transport-https ca-certificates
+
+Bước 2: Tải khóa GPG của kho lưu trữ PostgreSQL, chuyển đổi tệp .asc thành .gpg thông qua lệnh “gpg --dearmor”, sau đó thêm kho lưu trữ PostgreSQL, cài đặt repo cho postgres
+curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor | sudo tee /usr/share/keyrings/pgdg.gpg > /dev/null 2>&1
+sudo sh -c 'echo "deb [signed-by=/usr/share/keyrings/pgdg.gpg] http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+
+Bước 3: Update repo PostgreSQL
+sudo apt update
+update repo
+
+Bước 4: Cài đặt postgres và khởi động
+sudo apt install postgresql
+sudo systemctl is-enabled postgresql
+sudo systemctl status postgresql
+sudo apt install postgresql-plperl-15
+
+Bước 5: Tạo user bucardo để đồng bộ dữ liệu
+
+sudo -u postgres psql
+CREATE USER bucardo WITH SUPERUSER;
+CREATE DATABASE bucardo OWNER bucardo;
+
+Bước 6: Cấu hình dữ liệu Databases như sau
+sudo vi /etc/postgresql/15/main/postgresql.conf
+data_directory = '/data/postgresql/15/main'
+
+Bước 7: Cấu hình hba postgres trên server 
+sudo vi /etc/postgresql/15/main/pg_hba.conf
+# local connection and bucardo user
+local    all             all                                    trust
+local    all             bucardo                                trust
+
+# Bucardo user remote connections
+host    all             postgres         10.0.8.70/24           trust
+host    all             bucardo          10.0.8.70/24           trust
+host    all             postgres         10.6.208.21/24         trust
+host    all             bucardo          10.6.208.21/24         trust
+
+Bước 8: Restart postgresql và check process
+sudo systemctl restart postgresql
+ss -tulpn | grep postgres
+
+Bước 9: Cài đặt Bucardo
+sudo apt install make libdbix-safe-perl libboolean-perl libdbd-mock-perl libdbd-pg-perl libanyevent-dbd-pg-perl libpg-hstore-perl libpgobject-perl libpod-parser-perl libencode-locale-perl
+wget -q https://bucardo.org/downloads/Bucardo-5.6.0.tar.gz
+tar xf Bucardo-5.6.0.tar.gz
+cd Bucardo-*/
+perl Makefile.PL
+sudo make install
+which bucardo
+bucardo --version
+sudo mkdir -p /var/run/bucardo /var/log/bucardo
+touch /var/log/bucardo/log.bucardo
+bucardo install
+Chọn P để cấu hình databases
+
+##########################################################Thêm databases để đồng bộ dữ liệu của 2 server##################################################################################################
+Bước 10: Add databases để bacardo đồng bộ trên server 10.0.8.70
+bucardo add database server1 dbname=nexttech
+bucardo add database server2 dbname=nexttech host=10.6.208.21
+
+Bước 11: Add tất cả các bảng trong scherma nexttech vào để đc đồng bộ
+bucardo add all tables --her=10.0.8.70 db=server1 --schema=zabbix
+bucardo add all tables --her=10.6.208.21 db=server2 --schema=zabbix
+bucardo list relgroup
+
+
+Bước 12 : Đồng bộ 2 server với relgroup và chẹc trạng thái
+bucardo add sync master1 relgroup=10.0.8.70 db=server1,server2
+bucardo add sync master2 relgroup=10.6.208.21 db=server2,server1
+
+bucardo list sync
+bucardo restart sync
+bucardo status
+
+Cấu hình sang server  10.6.208.21
+Bước 13: Add databases để bacardo đồng bộ
+bucardo add database server3 dbname=nexttech
+bucardo add database server4 dbname=nexttech host=10.0.8.70
+
+Bước 14: Add tất cả các bảng trong scherma nexttech vào để đc đồng bộ
+bucardo add all tables --her=10.6.208.21 db=server3 --schema=zabbix2
+bucardo add all tables --her=10.0.8.70 db=server4 --schema=zabbix2
+bucardo list relgroup
+
+Bước 15 : Đồng bộ 2 server với relgroup và chẹc trạng thái
+bucardo add sync master3 relgroup=10.6.208.21 db=server3,server4
+bucardo add sync master4 relgroup=10.0.8.70 db=server4,server3
+
+Đường dẫn log /var/log/bucardo/log.bucardo

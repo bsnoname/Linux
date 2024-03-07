@@ -1,0 +1,104 @@
+1. mount ổ data cho server mới cài:
+
+vgcreate storage /dev/sda
+lvcreate -l 100%FREE -n data storage   
+mkdir /data
+mkfs.ext4 /dev/storage/data
+mount /dev/storage/data /data
+blkid /dev/mapper/storage-data
+
+2. setup yubikey
+Link các key của yubikey
+https://docs.google.com/spreadsheets/d/1aGIAWmlas_PAP7HRHqFBF7QkJB1lyqfC/edit#gid=1935433943
+# file cấu hình : /etc/yubipasswd
+
+3. tăng dung lượng
+
+bước 1: rescan size disk
+
+ls /sys/class/scsi_device/
+echo "1" > /sys/class/scsi_device/2\:0\:0\:0/device/rescan
+echo "1" > /sys/class/scsi_device/0\:0\:0\:0/device/rescan
+echo "1" > /sys/class/scsi_device/0\:0\:2\:0/device/rescan
+echo "1" > /sys/class/scsi_device/0\:0\:1\:0/device/rescan
+echo "1" > /sys/class/scsi_device/0\:0\:1\:0/device/rescan
+
+bước 2: resize pv
+
+pvresize /dev/sdb
+
+bước 3: extend lv
+lvextend -l +100%FREE /dev/mapper/storage-data
+
+bước 4: resize
+# với ext 4
+resize2fs /dev/mapper/storage-data
+# với xfs
+xfs_growfs /dev/mapper/centos-root
+
+4.
+ls /sys/class/scsi_device/
+echo "1" > /sys/class/scsi_device/2\:0\:0\:0/device/rescan
+echo "1" > /sys/class/scsi_device/0\:0\:0\:0/device/rescan
+echo "1" > /sys/class/scsi_device/0\:0\:2\:0/device/rescan
+echo "1" > /sys/class/scsi_device/0\:0\:1\:0/device/rescan
+echo "1" > /sys/class/scsi_device/0\:0\:1\:0/device/rescan
+
+##############
+*Với Centos###
+##############
+
+yum install cloud-utils-growpart
+growpart /dev/sda 2
+pvresize /dev/sda2
+lvextend -l +100%FREE /dev/mapper/centos-root
+
+#resize2fs
+xfs_growfs /dev/mapper/centos-root
+#với ext 4
+resize2fs /dev/mapper/ubuntu--vg-ubuntu--lv
+
+
+#Với ubuntu
+growpart /dev/sda 3
+pvresize /dev/sda3
+lvextend -l +100%FREE /dev/mapper/ubuntu--vg-ubuntu--lv
+
+
+
+
+
+Scan ổ mới add vào trên server
+ls /sys/class/scsi_host
+
+echo "- - -" > /sys/class/scsi_host/host0/scan
+echo "- - -" > /sys/class/scsi_host/host1/scan
+echo "- - -" > /sys/class/scsi_host/host2/scan
+
+
+#########Với ổ Crypt##########################
+cryptsetup luksFormat /dev/sdd
+cryptsetup luksOpen /dev/sdd storage2-data-cryp
+pvcreate /dev/mapper/storage2-data-cryp
+vgcreate storage2 /dev/mapper/storage2-data-cryp
+lvcreate -l 100%FREE -n data storage2
+mkfs.ext4 /dev/storage2/data 
+mkdir /data2
+mount /dev/storage2/data /data2/
+#Lấy uuid của ổ crypt
+blkid | grep -i luks
+#Lấy uuid của ổ ext4
+
+echo "Next123Tech" > /boot/volume-key
+chown root:root /boot/volume-key
+chmod 0400 /boot/volume-key
+cryptsetup luksAddKey /dev/sdd /boot/volume-key 
+cat /boot/volume-key
+cryptsetup luksDump /dev/sdd 
+
+#####################Tăng với ổ crypt#########
+
+cryptsetup resize storage2-data-cryp
+pvresize /dev/mapper/storage2-data-cryp 
+lvextend -l +100%FREE /dev/mapper/storage2-data
+resize2fs /dev/mapper/storage2-data

@@ -1,0 +1,9 @@
+curl -s -X POST https://api.telegram.org/bot6121094059:AAFFLC1dqNp-vPY1VwVPpcyknokYkty-6LU/sendMessage -F chat_id=-971221901 -F text='abbbasd'
+
+General: curl -s -X POST https://api.telegram.org/bot5330483774:AAFYX1tRZDmfzpnwU9OvbQhiuLRDB2ntSz4/sendMessage -F chat_id=-1001536946137 -F text='SonTest'
+
+DR Ngân Lượng: curl -s -X POST https://api.telegram.org/bot6800434326:AAF9d_ObFm8E-GHxRWjRyoJJr6CxcphHBHI/sendMessage -F chat_id=-1002032578387 -F text='abbbasd'
+Nexttech : curl -s -X POST https://api.telegram.org/bot5330483774:AAFYX1tRZDmfzpnwU9OvbQhiuLRDB2ntSz4/sendMessage -F chat_id=-1001771640363 -F text='Nexttech'
+
+Ngân Lượng: curl -s -X POST https://api.telegram.org/bot5330483774:AAFYX1tRZDmfzpnwU9OvbQhiuLRDB2ntSz4/sendMessage -F chat_id=-1002003482160 -F text='NganLuong'
+

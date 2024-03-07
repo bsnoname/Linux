@@ -1,0 +1,8 @@
+mysql -u alepay -p mYpvhj#!J5yAqpZ < 5-24-03-2023-00h10m_.tar.gz
+stop slave;
+start slave;
+CHANGE MASTER TO MASTER_HOST='10.0.14.35', MASTER_LOG_FILE='binlog.000528', MASTER_LOG_POS= 695027424;
+
+
+Link backup databases và restorage ;
+https://kipalog.com/posts/Mot-cach-de-phuc-hoi-mysql-replication-break
